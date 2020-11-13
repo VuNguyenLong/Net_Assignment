@@ -15,6 +15,7 @@ class Client:
 	PLAY_STR = 'PLAY'
 	PAUSE_STR = 'PAUSE'
 	TEARDOWN_STR = 'TEARDOWN'
+	DESCRIBE_STR = 'DESCRIBE'
 	RTSP_VER = "RTSP/1.0"
 	TRANSPORT = "RTP/UDP"
 
@@ -27,6 +28,9 @@ class Client:
 	PLAY = 1
 	PAUSE = 2
 	TEARDOWN = 3
+	DESCRIBE = 4
+
+
 
 	# Initiation..
 	def __init__(self, master, serveraddr, serverport, rtpport, filename):
@@ -43,13 +47,16 @@ class Client:
 		self.teardownAcked = 0
 		self.connectToServer()
 		self.frameNbr = 0
+		self.packetloss = 0
+		self.rtt = 0
+		self.bps = 0.0
 
 	def createWidgets(self):
 		"""Build GUI."""
 		# Create Setup button
 		self.setup = Button(self.master, width=20, padx=3, pady=3)
-		self.setup["text"] = "Setup"
-		self.setup["command"] = self.setupMovie
+		self.setup["text"] = "Describe"
+		self.setup["command"] = self.describeMovie
 		self.setup.grid(row=1, column=0, padx=2, pady=2)
 
 		# Create Play button
@@ -74,10 +81,15 @@ class Client:
 		self.label = Label(self.master, height=19)
 		self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5)
 
-	def setupMovie(self):
+	def describeMovie(self):
 		"""Setup button handler."""
-		if self.state == self.INIT:
-			self.sendRtspRequest(self.SETUP)
+		if self.state == self.READY or self.state == self. PLAYING:
+			self.sendRtspRequest(self.DESCRIBE)
+		while 1:
+			if(self.state == self.READY or self.state == self.PLAYING):
+				break
+		tkMessageBox.showinfo('Description', 'Session: %d\nRTT: %f\nBps: %d byte/s\nPacket loss: %d\n' % (self.sessionId, self.rtt, self.bps, self.packetloss))
+
 
 	def exitClient(self):
 		"""Teardown button handler."""
@@ -92,12 +104,16 @@ class Client:
 
 	def playMovie(self):
 		"""Play button handler."""
-		if self.state == self.READY:
+		if self.state == self.INIT:
+			self.sendRtspRequest(self.SETUP)
+		while 1:
+			if self.state == self.READY:
+				break
 			# Create a new thread to listen for RTP packets
-			threading.Thread(target=self.listenRtp).start()
-			self.playEvent = threading.Event()
-			self.playEvent.clear()
-			self.sendRtspRequest(self.PLAY)
+		threading.Thread(target=self.listenRtp).start()
+		self.playEvent = threading.Event()
+		self.playEvent.clear()
+		self.sendRtspRequest(self.PLAY)
 
 	def listenRtp(self):
 		"""Listen for RTP packets."""
@@ -112,12 +128,17 @@ class Client:
 					rtpPacket.decode(data)
 					timestamp = timestamp1 - timestamp0
 					timestamp0 = timestamp1
+					self.rtt = timestamp
+
+					if self.frameNbr + 1 != rtpPacket.seqNum():
+						self.packetloss += (rtpPacket.seqNum() - self.frameNbr + 1)
 					currFrameNbr = rtpPacket.seqNum()
 					print ("Current Seq Num: " + str(currFrameNbr))
-					print ("RTT: " + str(timestamp))
+
 
 
 					if currFrameNbr > self.frameNbr:  # Discard the late packet
+						self.bps = sys.getsizeof(rtpPacket.payload) / timestamp
 						self.frameNbr = currFrameNbr
 						self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
 			except:
@@ -208,6 +229,10 @@ class Client:
 			# Keep track of the sent request.
 			# self.requestSent = ...
 			self.requestSent = self.TEARDOWN
+		elif (requestCode == self.DESCRIBE and self.state == self.READY) or (requestCode == self.DESCRIBE and self.state == self.PLAYING):
+			self.rtspSeq += 1
+			request = "%s %s %s \nCseg: %d\nSession: %d" % (self.DESCRIBE_STR, self.fileName, self.RTSP_VER, self.rtspSeq, self.sessionId)
+			self.requestSent = self.DESCRIBE
 		else:
 			return
 

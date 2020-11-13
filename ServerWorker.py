@@ -10,6 +10,7 @@ class ServerWorker:
     PLAY = 'PLAY'
     PAUSE = 'PAUSE'
     TEARDOWN = 'TEARDOWN'
+    DESCRIBE = 'DESCRIBE'
 
     INIT = 0
     READY = 1
@@ -107,6 +108,8 @@ class ServerWorker:
 
             # Close the RTP socket
             self.clientInfo['rtpSocket'].close()
+        elif requestType == self.DESCRIBE:
+            self.replyRtsp(self.OK_200, seq[1])
 
     def sendRtp(self):
         """Send RTP packets over UDP."""
