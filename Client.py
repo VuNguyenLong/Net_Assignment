@@ -1,10 +1,9 @@
-from Tkinter import *
-import tkMessageBox
-from time import time
-import self as self
+from tkinter import *
+import tkinter.messagebox
 from PIL import Image, ImageTk
 import socket, threading, sys, traceback, os
-
+from time import time
+import self as self
 from RtpPacket import RtpPacket
 
 CACHE_FILE_NAME = "cache-"
@@ -88,7 +87,7 @@ class Client:
 		while 1:
 			if(self.state == self.READY or self.state == self.PLAYING):
 				break
-		tkMessageBox.showinfo('Description', 'Session: %d\nRTT: %f\nBps: %d byte/s\nPacket loss: %d\n' % (self.sessionId, self.rtt, self.bps, self.packetloss))
+		tkinter.messagebox.showinfo('Description', 'Session: %d\nRTT: %f\nBps: %d byte/s\nPacket loss: %d\n' % (self.sessionId, self.rtt, self.bps, self.packetloss))
 
 
 	def exitClient(self):
@@ -128,7 +127,7 @@ class Client:
 					rtpPacket.decode(data)
 					timestamp = timestamp1 - timestamp0
 					timestamp0 = timestamp1
-					self.rtt = timestamp
+					self.rtt = 2*timestamp
 
 					if self.frameNbr + 1 != rtpPacket.seqNum():
 						self.packetloss += (rtpPacket.seqNum() - self.frameNbr + 1)
@@ -174,7 +173,7 @@ class Client:
 		try:
 			self.rtspSocket.connect((self.serverAddr, self.serverPort))
 		except:
-			tkMessageBox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' %self.serverAddr)
+			tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' %self.serverAddr)
 
 	def sendRtspRequest(self, requestCode):
 		"""Send RTSP request to the server."""
@@ -312,12 +311,12 @@ class Client:
 			self.state = self.READY
 			self.rtpSocket.bind(('',self.rtpPort))
 		except:
-			tkMessageBox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' %self.rtpPort)
+			tkinter.messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' %self.rtpPort)
 
 	def handler(self):
 		"""Handler on explicitly closing the GUI window."""
 		self.pauseMovie()
-		if tkMessageBox.askokcancel("Quit?", "Are you sure you want to quit?"):
+		if tkinter.messagebox.askokcancel("Quit?", "Are you sure you want to quit?"):
 			self.exitClient()
 		else: # When the user presses cancel, resume playing.
 			self.playMovie()
