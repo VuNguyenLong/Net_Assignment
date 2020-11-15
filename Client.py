@@ -3,7 +3,6 @@ import tkinter.messagebox
 from PIL import Image, ImageTk
 import socket, threading, sys, traceback, os
 from time import time
-import self as self
 from RtpPacket import RtpPacket
 
 CACHE_FILE_NAME = "cache-"
@@ -116,17 +115,17 @@ class Client:
 
 	def listenRtp(self):
 		"""Listen for RTP packets."""
-		timestamp0 = time()
+
 		while True:
 			try:
 				print("listening")
+				timestamp0 = time()
 				data = self.rtpSocket.recv(20480)
 				timestamp1 = time()
 				if data:
 					rtpPacket = RtpPacket()
 					rtpPacket.decode(data)
 					timestamp = timestamp1 - timestamp0
-					timestamp0 = timestamp1
 					self.rtt = 2*timestamp
 
 					if self.frameNbr + 1 != rtpPacket.seqNum():
