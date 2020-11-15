@@ -115,7 +115,7 @@ class Client:
 
 	def listenRtp(self):
 		"""Listen for RTP packets."""
-
+		timestamp0 = time()
 		while True:
 			try:
 				print("listening")
@@ -132,8 +132,6 @@ class Client:
 						self.packetloss += (rtpPacket.seqNum() - self.frameNbr + 1)
 					currFrameNbr = rtpPacket.seqNum()
 					print ("Current Seq Num: " + str(currFrameNbr))
-
-
 
 					if currFrameNbr > self.frameNbr:  # Discard the late packet
 						self.bps = sys.getsizeof(rtpPacket.payload) / timestamp
@@ -236,7 +234,7 @@ class Client:
 
 		# Send the RTSP request using rtspSocket.
 		# ...
-		self.rtspSocket.send(request)
+		self.rtspSocket.sendall(request.encode('utf-8'))
 		print ('\nData sent:\n' + request)
 
 	def recvRtspReply(self):
@@ -247,6 +245,7 @@ class Client:
 			if reply:
 				self.parseRtspReply(reply)
 
+
 			# Close the RTSP socket upon requesting Teardown
 			if self.requestSent == self.TEARDOWN:
 				self.rtspSocket.shutdown(socket.SHUT_RDWR)
@@ -255,19 +254,19 @@ class Client:
 
 	def parseRtspReply(self, data):
 		"""Parse the RTSP reply from the server."""
-		lines = data.split('\n')
-		seqNum = int(lines[1].split(' ')[1])
+		lines = data.split(b'\n')
+		seqNum = int(lines[1].split(b' ')[1])
 
 		# Process only if the server reply's sequence number is the same as the request's
 		if seqNum == self.rtspSeq:
-			session = int(lines[2].split(' ')[1])
+			session = int(lines[2].split(b' ')[1])
 			# New RTSP session ID
 			if self.sessionId == 0:
 				self.sessionId = session
 
 			# Process only if the session ID is the same
 			if self.sessionId == session:
-				if int(lines[0].split(' ')[1]) == 200:
+				if int(lines[0].split(b' ')[1]) == 200:
 					if self.requestSent == self.SETUP:
 						#-------------
 						# TO COMPLETE
