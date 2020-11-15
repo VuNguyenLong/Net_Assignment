@@ -80,13 +80,14 @@ class Client:
 		self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5)
 
 	def describeMovie(self):
-		"""Setup button handler."""
-		if self.state == self.READY or self.state == self. PLAYING:
+		if self.state == self.READY or self.state == self.PLAYING:
 			self.sendRtspRequest(self.DESCRIBE)
-		while 1:
-			if(self.state == self.READY or self.state == self.PLAYING):
-				break
-		tkinter.messagebox.showinfo('Description', 'Session: %d\nRTT: %f\nBps: %d byte/s\nPacket loss: %d\n' % (self.sessionId, self.rtt, self.bps, self.packetloss))
+			start = time()
+			while self.state not in [self.READY, self.PLAYING]:
+				if (time() - start) > 10:
+					raise Exception('Time out')
+					exit(1)
+			tkinter.messagebox.showinfo('Description', 'Session: %d\nRTT: %f\nBps: %d byte/s\nPacket loss: %d\n' % (self.sessionId, self.rtt, self.bps, self.packetloss))
 
 
 	def exitClient(self):
